@@ -1,3 +1,6 @@
+# Reason for creating this fork
+This library is adapted slightly to accommodate dragging from a normal DOM to an iFrame window that has been polyfilled for use of webcomponents with the _shady dom_ by https://github.com/webcomponents/webcomponentsjs.
+
 # Sortable
 Sortable is a <s>minimalist</s> JavaScript library for reorderable drag-and-drop lists.
 
