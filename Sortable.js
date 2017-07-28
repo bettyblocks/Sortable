@@ -48,6 +48,10 @@
 		activeGroup,
 		putSortable,
 
+		awayFromShadowDom,
+		tmpSrcClone,
+		cssDisplayVal,
+
 		autoScroll = {},
 
 		tapEvt,
@@ -686,6 +690,35 @@
 				!options.dragoverBubble && evt.stopPropagation();
 			}
 
+			/**************************************************************
+			 * Fix for dragging into an iframe with polyfilled shadow dom *
+			 **************************************************************/
+
+			// Over polyfillded DOM
+			// Remove child from non-polyfilled DOM before inserting into polyfilled DOM to prevent errors in polyfill
+			if ((el.__shady && !dragEl.__shady && dragEl.parentNode) || (dragEl.parentNode && awayFromShadowDom)) {
+				awayFromShadowDom = false;
+				// Place a clone in the source list so it looks like the dragEl is not removed
+				if (!tmpSrcClone) {
+					tmpSrcClone = dragEl.cloneNode(true);
+					dragEl.parentNode.insertBefore(tmpSrcClone, dragEl);
+				}
+				// Make dragger visibile again if it was hidden when moving over source list
+				if (dragEl.style.display === 'none') {
+					dragEl.style.display = cssDisplayVal;
+				}
+				// Proceed dragging with a detached el
+				dragEl = dragEl.parentNode.removeChild(dragEl);
+			}
+
+			// Over original container after being over polyfilled DOM.
+			if (!el.__shady && dragEl.__shady) {
+				// Toggle flag to force a detached el on next call
+				awayFromShadowDom = true;
+				cssDisplayVal = dragEl.style.display;
+				dragEl.style.display = 'none';
+			}
+
 			if (dragEl.animated) {
 				return;
 			}
@@ -983,6 +1016,10 @@
 
 			lastEl =
 			lastCSS =
+
+			awayFromShadowDom =
+			tmpSrcClone =
+			cssDisplayVal =
 
 			putSortable =
 			activeGroup =
@@ -1439,7 +1476,7 @@
 		}
 	}
 
-	// Fixed #973: 
+	// Fixed #973:
 	_on(document, 'touchmove', function (evt) {
 		if (Sortable.active) {
 			evt.preventDefault();
