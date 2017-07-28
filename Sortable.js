@@ -1181,7 +1181,7 @@
 			_css(cloneEl, 'display', state ? 'none' : '');
 
 			if (!state) {
-				if (cloneEl.state) {
+				if (cloneEl.state && rootEl.contains(dragEl)) {
 					if (sortable.options.group.revertClone) {
 						rootEl.insertBefore(cloneEl, nextEl);
 						sortable._animate(dragEl, cloneEl);
