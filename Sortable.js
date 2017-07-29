@@ -48,9 +48,9 @@
 		activeGroup,
 		putSortable,
 
-		awayFromShadowDom,
-		tmpSrcClone,
-		cssDisplayVal,
+		returnedToSrcList,
+		dragElDetached,
+		tmpClone,
 
 		autoScroll = {},
 
@@ -632,7 +632,6 @@
 
 			if (activeGroup.checkPull(this, this, dragEl, evt)) {
 				cloneEl = _clone(dragEl);
-
 				cloneEl.draggable = false;
 				cloneEl.style['will-change'] = '';
 
@@ -696,27 +695,33 @@
 
 			// Over polyfillded DOM
 			// Remove child from non-polyfilled DOM before inserting into polyfilled DOM to prevent errors in polyfill
-			if ((el.__shady && !dragEl.__shady && dragEl.parentNode) || (dragEl.parentNode && awayFromShadowDom)) {
-				awayFromShadowDom = false;
-				// Place a clone in the source list so it looks like the dragEl is not removed
-				if (!tmpSrcClone) {
-					tmpSrcClone = dragEl.cloneNode(true);
-					dragEl.parentNode.insertBefore(tmpSrcClone, dragEl);
+			if (
+				(el.__shady && !dragEl.__shady && dragEl.parentNode && !dragElDetached) ||
+				(el.__shady &&  dragEl.__shady && dragEl.parentNode && returnedToSrcList)
+			) {
+				// Use a custom clone because the default one will not work
+				if (!tmpClone) {
+					tmpClone = dragEl.cloneNode(true);
+					dragEl.parentNode.insertBefore(tmpClone, dragEl);
+					// Brute force on styles using classes with !important
+					cloneEl.classList.add('force-hide');
+					tmpClone.classList.add('force-active');
 				}
-				// Make dragger visibile again if it was hidden when moving over source list
-				if (dragEl.style.display === 'none') {
-					dragEl.style.display = cssDisplayVal;
-				}
-				// Proceed dragging with a detached el
-				dragEl = dragEl.parentNode.removeChild(dragEl);
+
+				// Proceed with detached dragEl
+				dragEl            = dragEl.parentNode.removeChild(dragEl);
+				// Toggle state flags
+				returnedToSrcList = false;
+				dragElDetached    = true;
 			}
 
 			// Over original container after being over polyfilled DOM.
-			if (!el.__shady && dragEl.__shady) {
-				// Toggle flag to force a detached el on next call
-				awayFromShadowDom = true;
-				cssDisplayVal = dragEl.style.display;
-				dragEl.style.display = 'none';
+			if (!el.__shady && dragEl.__shady && dragElDetached && !returnedToSrcList) {
+				// Toggle state flags
+				returnedToSrcList = true;
+				dragElDetached    = false;
+				// Hide dragEl to prevent duplicate entries in source list
+				dragEl.classList.add('force-hide');
 			}
 
 			if (dragEl.animated) {
@@ -906,11 +911,18 @@
 
 		_onDrop: function (/**Event*/evt) {
 			var el = this.el,
-				options = this.options;
+				options = this.options,
+				dropOverSrcList = false;
 
 			clearInterval(this._loopId);
 			clearInterval(autoScroll.pid);
 			clearTimeout(this._dragStartTimer);
+
+			dragEl   && dragEl.classList.remove('force-hide');
+			cloneEl  && cloneEl.classList.remove('force-hide');
+			tmpClone && tmpClone.classList.remove('force-active');
+			tmpClone && tmpClone.parentNode && tmpClone.parentNode.removeChild(tmpClone);
+			dropOverSrcList = !!returnedToSrcList;
 
 			// Unbind events
 			_off(document, 'mousemove', this._onTouchMove);
@@ -994,6 +1006,10 @@
 			}
 
 			this._nulling();
+			// Force new detach of dragEl
+			if (dropOverSrcList) {
+				returnedToSrcList = true;
+			}
 		},
 
 		_nulling: function() {
@@ -1017,9 +1033,9 @@
 			lastEl =
 			lastCSS =
 
-			awayFromShadowDom =
-			tmpSrcClone =
-			cssDisplayVal =
+			returnedToSrcList =
+			dragElDetached =
+			tmpClone =
 
 			putSortable =
 			activeGroup =
@@ -1523,6 +1539,6 @@
 
 
 	// Export
-	Sortable.version = '1.6.0';
+	Sortable.version = '1.6.2';
 	return Sortable;
 });
